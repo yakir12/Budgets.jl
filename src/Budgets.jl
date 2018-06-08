@@ -2,7 +2,7 @@ __precompile__()
 
 module Budgets
 
-using StringBuilders, Formatting, Missings
+using StringBuilders, Formatting, Missings, Rematch
 
 import Base:*, +, -, print
 
@@ -86,26 +86,24 @@ balance(b) = taxable(b) + tax(b) + reduce(+, Money(0), nonexpenses(b))
 
 # in
 
-function spawnevent(::Type{Val{:e}}, fields) 
-    a, b, c, d = fields
-    Event(isempty(a) ? missing : Date(a), b, parse(Int, c), Money(parse(d)))
-end
-
-function spawnevent(::Type{Val{:d}}, fields) 
-    a, b = fields
-    Event(a, Money(parse(b)))
-end
-
-function spawnevent(::Type{Val{:p}}, fields) 
-    a, b = fields
-    Event(Date(a), Money(parse(b)))
-end
-
 function define_event(l::String)
     a = match(r"^([edp]):(.*)"i, l)
-    event = Symbol(first(a.captures))
+    event = first(a.captures)
     fields = strip.(split(last(a.captures), ","))
-    spawnevent(Val{event}, fields)
+    return @match event begin 
+        "e" => begin
+            a, b, c, d = fields
+            Event(isempty(a) ? missing : Date(a), b, parse(Int, c), Money(parse(d)))
+        end
+        "d" => begin
+            a, b = fields
+            Event(a, Money(parse(b)))
+        end
+        "p" => begin
+            a, b = fields
+            Event(Date(a), Money(parse(b)))
+        end
+    end
 end
 
 # out
@@ -151,7 +149,7 @@ function print(b::Budget)
 
     append!(o, "& Balance due & & & ", my_format(balance(b)), "\\\\")
     return String(o)
-end
+    end
 
 
     #=function printmd(b::Budget)
@@ -180,7 +178,7 @@ end
     return print(GridTable, a)
     end=#
 
-end # module
+    end # module
 
     #=b = Budget(Percentile(0))
     x1 = Expense("kaka", 33, 45)
@@ -220,61 +218,61 @@ end # module
     a[j + 1,1] = b.expenses[j].description
     a[j + 1,2] = b.expenses[j].units
     a[j + 1,3] = b.expenses[j].price
-\begin{longtabu} to \textwidth { l X c r r }
-    \hline
-    \blue{Date} & \blue{Description} & \blue{Units} & \blue{Rate} & \blue{Amount} \\
-    \hline
-    a[j + 1,4] = b.expenses[j].sum
-    end
-    a[nexpenses + 2,1] = "Fees"
-    a[nexpenses + 2,4] = b.sumb4tax
-    a[nexpenses + 3,1] = "VAT ($(b.moms)%)"
-    a[nexpenses + 3,4] = b.tax
-    for j = 1:ndeductions
-    a[j + nexpenses + 3,1] = b.deductions[j].description
-    a[j + nexpenses + 3,4] = b.deductions[j].sum
-    end
-    a[end, 1] = "Total"
-    a[end, 4] = b.sum
-    if receipt
-    a[end,1] *= " owed"
-    a = cat(1, a, ["Total payed" "" "" b.sum; "Balance" "" "" RoundReal(0)])
-    end
-    return printMD(a)
-    end
-
-    write(x::Expense) = "$(x.description) & $(x.units) & $(x.price) & $(x.sum)\\\\"
-
-    write(x::Deduction) = "$(x.description) & & & $(-x.sum)\\\\"
-
-    function write(b::Budget)
-    txt = ["""\\begin{longtable}{l c c r}
-        Item & Units & Price (SEK) & Amount (SEK)\\\\
-        \\hline"""]
-        append!(txt, write.(b.expenses))
-        push!(txt, """\\hline
-        Fees & & & $(b.sumb4tax)\\\\
-        VAT ($(b.moms)\\%) & & & $(b.tax)\\\\""")
-        if length(b.deductions) > 0
-        append!(txt, write.(b.deductions))
+    \begin{longtabu} to \textwidth { l X c r r }
+        \hline
+        \blue{Date} & \blue{Description} & \blue{Units} & \blue{Rate} & \blue{Amount} \\
+        \hline
+        a[j + 1,4] = b.expenses[j].sum
         end
-        push!(txt, """\\hline
-        \\hline
-        \\bf Total & & & \\bf $(b.sum)\\\\
-    \\end{longtable}""")
-    return join(txt, "\n")
-    end
+        a[nexpenses + 2,1] = "Fees"
+        a[nexpenses + 2,4] = b.sumb4tax
+        a[nexpenses + 3,1] = "VAT ($(b.moms)%)"
+        a[nexpenses + 3,4] = b.tax
+        for j = 1:ndeductions
+        a[j + nexpenses + 3,1] = b.deductions[j].description
+        a[j + nexpenses + 3,4] = b.deductions[j].sum
+        end
+        a[end, 1] = "Total"
+        a[end, 4] = b.sum
+        if receipt
+        a[end,1] *= " owed"
+        a = cat(1, a, ["Total payed" "" "" b.sum; "Balance" "" "" RoundReal(0)])
+        end
+        return printMD(a)
+        end
 
-    using StringBuilders
-    import StringBuilders:append!
-    function append!(sb::StringBuilder, ss::AbstractString...)
-    for s in ss
-    append!(sb, s)
-    end
-    end
+        write(x::Expense) = "$(x.description) & $(x.units) & $(x.price) & $(x.sum)\\\\"
 
-    o = StringBuilder()
-    append!(o, "2")
-    String(o)
-    append!(o, "3", "4", "5")
-    =#
+        write(x::Deduction) = "$(x.description) & & & $(-x.sum)\\\\"
+
+        function write(b::Budget)
+        txt = ["""\\begin{longtable}{l c c r}
+            Item & Units & Price (SEK) & Amount (SEK)\\\\
+            \\hline"""]
+            append!(txt, write.(b.expenses))
+            push!(txt, """\\hline
+            Fees & & & $(b.sumb4tax)\\\\
+            VAT ($(b.moms)\\%) & & & $(b.tax)\\\\""")
+            if length(b.deductions) > 0
+            append!(txt, write.(b.deductions))
+            end
+            push!(txt, """\\hline
+            \\hline
+            \\bf Total & & & \\bf $(b.sum)\\\\
+        \\end{longtable}""")
+        return join(txt, "\n")
+        end
+
+        using StringBuilders
+        import StringBuilders:append!
+        function append!(sb::StringBuilder, ss::AbstractString...)
+        for s in ss
+        append!(sb, s)
+        end
+        end
+
+        o = StringBuilder()
+        append!(o, "2")
+        String(o)
+        append!(o, "3", "4", "5")
+        =#
