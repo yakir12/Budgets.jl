@@ -1,8 +1,6 @@
-__precompile__()
-
 module Budgets
 
-using StringBuilders, Formatting, Missings, Match, Dates
+using StringBuilders, Formatting, Dates
 
 import Base:*, +, -, print
 
@@ -88,18 +86,17 @@ function define_event(l::String)
     a = match(r"^([edp]):(.*)"i, l)
     event = first(a.captures)
     fields = strip.(split(last(a.captures), ","))
-    return @match event begin 
-        "e" => begin
+    return if event == "e"
             a, b, c, d = fields
             Event(isempty(a) ? missing : Date(a), b, parse(Int, c), Money(parse(Float64, d)))
-        end
-        "d" => begin
+        elseif event == "d"
             a, b = fields
             Event(a, Money(parse(Float64, b)))
-        end
-        "p" => begin
+        elseif event == "p"
             a, b = fields
             Event(Date(a), Money(parse(Float64, b)))
+        else
+            error("event is neither e, d, nor p")
         end
     end
 end
