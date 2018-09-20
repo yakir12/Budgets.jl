@@ -2,7 +2,7 @@ __precompile__()
 
 module Budgets
 
-using StringBuilders, Formatting, Missings, Rematch
+using StringBuilders, Formatting, Missings, Match, Dates
 
 import Base:*, +, -, print
 
@@ -76,11 +76,11 @@ payments(b) = sort(filter(x -> x isa Payment, b.events), by = x -> x.date)
 
 nonexpenses(b) = filter(x -> !isa(x, Expense), b.events)
 
-taxable(b) = reduce(+, Money(0), expenses(b))
+taxable(b) = reduce(+, expenses(b), init = Money(0))
 
 tax(b) = taxable(b)*b.moms
 
-balance(b) = taxable(b) + tax(b) + reduce(+, Money(0), nonexpenses(b))
+balance(b) = taxable(b) + tax(b) + reduce(+, nonexpenses(b), init = Money(0))
 
 # in
 
@@ -91,15 +91,15 @@ function define_event(l::String)
     return @match event begin 
         "e" => begin
             a, b, c, d = fields
-            Event(isempty(a) ? missing : Date(a), b, parse(Int, c), Money(parse(d)))
+            Event(isempty(a) ? missing : Date(a), b, parse(Int, c), Money(parse(Float64, d)))
         end
         "d" => begin
             a, b = fields
-            Event(a, Money(parse(b)))
+            Event(a, Money(parse(Float64, b)))
         end
         "p" => begin
             a, b = fields
-            Event(Date(a), Money(parse(b)))
+            Event(Date(a), Money(parse(Float64, b)))
         end
     end
 end
